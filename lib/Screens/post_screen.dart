@@ -1,54 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:myapp/Screens/bloc/posts_cubit/posts_cubit.dart';
 import 'package:myapp/Screens/posts_details_screen.dart';
-import 'package:myapp/models/posts_Model.dart';
-import 'package:myapp/service/post_service.dart';
 
-class PostScreen extends StatefulWidget {
+
+class PostScreen extends StatelessWidget {
   const PostScreen({super.key});
 
   @override
-  State<PostScreen> createState() => _PostScreenState();
-}
-
-class _PostScreenState extends State<PostScreen> {
-  List<PostModle> posts = [];
-
-  void getPostFromServer() async {
-    posts = await PostService().getPost();
-    setState(() {});
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    getPostFromServer();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Post Screen"),
-        backgroundColor: Colors.deepOrange,
+    return BlocProvider(
+      create: (context) => PostsCubit(), 
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Post Screen"),
+          backgroundColor: Colors.deepOrange,
+        ),
+
+        body: BlocBuilder<PostsCubit, PostsState>(
+          builder: (context, state) {
+            final cubit = context.read<PostsCubit>();
+
+            if (state is PostsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is PostsError) {
+              return const Center(child: Text("Error"));
+            }
+
+            if (state is PostsSuccess) {
+              return ListView.builder(
+                itemCount: cubit.posts.length,
+                itemBuilder: (context, index) {
+                  return InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => PostsDetailsScreen(
+                            postDetails: cubit.posts[index],
+                          ),
+                        ),
+                      );
+                    },
+                    child: ListTile(
+                      title: Text(cubit.posts[index].title),
+                    ),
+                  );
+                },
+              );
+            }
+
+            return const SizedBox(); 
+          },
+        ),
       ),
-      body: posts.isEmpty
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                return InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            PostsDetailsScreen(postDetails: posts[index]),
-                      ),
-                    );
-                  },
-                  child: ListTile(title: Text(posts[index].title)),
-                );
-              },
-            ),
     );
   }
 }
